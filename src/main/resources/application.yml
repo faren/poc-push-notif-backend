@@ -1,0 +1,18 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: push-notif-backend
+
+firebase:
+  service-account-path: firebase-service-account.json
+
+logging:
+  level:
+    com.poc.pushnotif: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/push-notif-backend.log

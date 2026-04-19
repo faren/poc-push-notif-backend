@@ -1,0 +1,233 @@
+{
+  "title": "Notification Monitoring",
+  "uid": "push-notif-poc",
+  "description": "Monitoring status notifikasi: SENT, DELIVERED, READ, dan FCM errors",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "tags": ["push-notification", "poc"],
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Total SENT",
+      "description": "Jumlah notifikasi yang diterima backend (sebelum dikirim ke FCM)",
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki-ds" },
+      "options": {
+        "reduceOptions": { "calcs": ["sum"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki-ds" },
+          "expr": "sum(count_over_time({job=\"push-notif-backend\"} |= \"[NOTIF-LOG] status: SENT\" [$__range]))",
+          "queryType": "instant",
+          "legendFormat": "SENT"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total DELIVERED",
+      "description": "Jumlah notifikasi yang berhasil diterima Firebase FCM",
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki-ds" },
+      "options": {
+        "reduceOptions": { "calcs": ["sum"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "green" },
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki-ds" },
+          "expr": "sum(count_over_time({job=\"push-notif-backend\"} |= \"[NOTIF-LOG] status: DELIVERED\" [$__range]))",
+          "queryType": "instant",
+          "legendFormat": "DELIVERED"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Total READ",
+      "description": "Jumlah notifikasi yang dibuka oleh pengguna (dilaporkan dari Flutter)",
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 0 },
+      "datasource": { "type": "loki", "uid": "loki-ds" },
+      "options": {
+        "reduceOptions": { "calcs": ["sum"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "purple" },
+          "unit": "none",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "purple", "value": null }]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki-ds" },
+          "expr": "sum(count_over_time({job=\"push-notif-backend\"} |= \"[NOTIF-LOG] status: READ\" [$__range]))",
+          "queryType": "instant",
+          "legendFormat": "READ"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Notification Flow — SENT / DELIVERED / READ",
+      "description": "Volume notifikasi per status dari waktu ke waktu",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 4 },
+      "datasource": { "type": "loki", "uid": "loki-ds" },
+      "options": {
+        "tooltip": { "mode": "multi", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "none", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "SENT" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }] },
+          { "matcher": { "id": "byName", "options": "DELIVERED" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+          { "matcher": { "id": "byName", "options": "READ" },    "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "purple" } }] }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki-ds" },
+          "expr": "sum(count_over_time({job=\"push-notif-backend\"} |= \"[NOTIF-LOG] status: SENT\" [$__interval]))",
+          "queryType": "range",
+          "legendFormat": "SENT"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "loki", "uid": "loki-ds" },
+          "expr": "sum(count_over_time({job=\"push-notif-backend\"} |= \"[NOTIF-LOG] status: DELIVERED\" [$__interval]))",
+          "queryType": "range",
+          "legendFormat": "DELIVERED"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "loki", "uid": "loki-ds" },
+          "expr": "sum(count_over_time({job=\"push-notif-backend\"} |= \"[NOTIF-LOG] status: READ\" [$__interval]))",
+          "queryType": "range",
+          "legendFormat": "READ"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "FCM Error Rate",
+      "description": "Jumlah kegagalan saat mengirim ke Firebase dari waktu ke waktu",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "loki", "uid": "loki-ds" },
+      "options": {
+        "tooltip": { "mode": "single", "sort": "none" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none",
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "custom": { "lineWidth": 2, "fillOpacity": 15 }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki-ds" },
+          "expr": "sum(count_over_time({job=\"push-notif-backend\"} |= \"FCM send failed\" [$__interval]))",
+          "queryType": "range",
+          "legendFormat": "FCM Error"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "piechart",
+      "title": "Notifikasi per Kategori",
+      "description": "Breakdown SENT berdasarkan kategori: PROMOTION, REMINDER, GENERIC",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "loki", "uid": "loki-ds" },
+      "options": {
+        "pieType": "pie",
+        "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] },
+        "tooltip": { "mode": "single" }
+      },
+      "fieldConfig": {
+        "defaults": { "unit": "none" },
+        "overrides": [
+          {
+            "matcher": { "id": "byFrameRefID", "options": "A" },
+            "properties": [{ "id": "displayName", "value": "PROMOTION" }]
+          },
+          {
+            "matcher": { "id": "byFrameRefID", "options": "B" },
+            "properties": [{ "id": "displayName", "value": "REMINDER" }]
+          },
+          {
+            "matcher": { "id": "byFrameRefID", "options": "C" },
+            "properties": [{ "id": "displayName", "value": "GENERIC" }]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "loki", "uid": "loki-ds" },
+          "expr": "sum(count_over_time({job=\"push-notif-backend\"} |= \"[NOTIF-LOG]\" |= \"category: PROMOTION\" [$__range]))",
+          "queryType": "instant"
+        },
+        {
+          "refId": "B",
+          "datasource": { "type": "loki", "uid": "loki-ds" },
+          "expr": "sum(count_over_time({job=\"push-notif-backend\"} |= \"[NOTIF-LOG]\" |= \"category: REMINDER\" [$__range]))",
+          "queryType": "instant"
+        },
+        {
+          "refId": "C",
+          "datasource": { "type": "loki", "uid": "loki-ds" },
+          "expr": "sum(count_over_time({job=\"push-notif-backend\"} |= \"[NOTIF-LOG]\" |= \"category: GENERIC\" [$__range]))",
+          "queryType": "instant"
+        }
+      ]
+    }
+  ]
+}
