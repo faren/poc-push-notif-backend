@@ -1,0 +1,186 @@
+{
+  "title": "Push Notification Monitoring — Mobile JKN",
+  "uid": "push-notif-bpjs",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5m",
+  "time": { "from": "now-7d", "to": "now" },
+  "timezone": "Asia/Jakarta",
+  "tags": ["bpjs", "push-notif"],
+  "panels": [
+
+    {
+      "id": 1,
+      "title": "Total Notifikasi",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "mssql", "uid": "sqlserver-bpjs" },
+      "targets": [{
+        "refId": "A",
+        "format": "table",
+        "rawSql": "SELECT COUNT(*) AS value FROM [dbo].[Notifikasi] WHERE $__timeFilter(FDate)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none", "textMode": "auto" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" }, "unit": "short", "thresholds": { "mode": "absolute", "steps": [] } } }
+    },
+
+    {
+      "id": 2,
+      "title": "Delivery Rate",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "mssql", "uid": "sqlserver-bpjs" },
+      "targets": [{
+        "refId": "A",
+        "format": "table",
+        "rawSql": "SELECT CAST(100.0 * SUM(CASE WHEN Status IN (1,4,5) THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN Status != 0 THEN 1 ELSE 0 END), 0) AS DECIMAL(5,1)) AS value FROM [dbo].[Notifikasi] WHERE $__timeFilter(FDate)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "unit": "percent", "color": { "mode": "thresholds" }, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 70 }, { "color": "green", "value": 85 }] } } }
+    },
+
+    {
+      "id": 3,
+      "title": "Open Rate (Dibaca / Diterima)",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "mssql", "uid": "sqlserver-bpjs" },
+      "targets": [{
+        "refId": "A",
+        "format": "table",
+        "rawSql": "SELECT CAST(100.0 * SUM(CASE WHEN Status = 5 THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN Status IN (4,5) THEN 1 ELSE 0 END), 0) AS DECIMAL(5,1)) AS value FROM [dbo].[Notifikasi] WHERE $__timeFilter(FDate)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "unit": "percent", "color": { "mode": "fixed", "fixedColor": "purple" }, "thresholds": { "mode": "absolute", "steps": [] } } }
+    },
+
+    {
+      "id": 4,
+      "title": "Total Gagal",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "mssql", "uid": "sqlserver-bpjs" },
+      "targets": [{
+        "refId": "A",
+        "format": "table",
+        "rawSql": "SELECT COUNT(*) AS value FROM [dbo].[Notifikasi] WHERE Status IN (2,3) AND $__timeFilter(FDate)"
+      }],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "red" }, "unit": "short", "thresholds": { "mode": "absolute", "steps": [] } } }
+    },
+
+    {
+      "id": 5,
+      "title": "Volume Notifikasi per Jam",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 16, "x": 0, "y": 4 },
+      "datasource": { "type": "mssql", "uid": "sqlserver-bpjs" },
+      "targets": [
+        {
+          "refId": "A",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(FDate,'1h'), COUNT(*) AS 'Total' FROM [dbo].[Notifikasi] WHERE $__timeFilter(FDate) GROUP BY $__timeGroup(FDate,'1h') ORDER BY 1"
+        },
+        {
+          "refId": "B",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(FDate,'1h'), SUM(CASE WHEN Status IN (1,4,5) THEN 1 ELSE 0 END) AS 'Berhasil' FROM [dbo].[Notifikasi] WHERE $__timeFilter(FDate) GROUP BY $__timeGroup(FDate,'1h') ORDER BY 1"
+        },
+        {
+          "refId": "C",
+          "format": "time_series",
+          "rawSql": "SELECT $__timeGroupAlias(FDate,'1h'), SUM(CASE WHEN Status IN (2,3) THEN 1 ELSE 0 END) AS 'Gagal' FROM [dbo].[Notifikasi] WHERE $__timeFilter(FDate) GROUP BY $__timeGroup(FDate,'1h') ORDER BY 1"
+        }
+      ],
+      "options": { "tooltip": { "mode": "multi" } },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Gagal" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+          { "matcher": { "id": "byName", "options": "Berhasil" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+          { "matcher": { "id": "byName", "options": "Total" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }] }
+        ]
+      }
+    },
+
+    {
+      "id": 6,
+      "title": "Distribusi Status",
+      "type": "piechart",
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 4 },
+      "datasource": { "type": "mssql", "uid": "sqlserver-bpjs" },
+      "targets": [{
+        "refId": "A",
+        "format": "table",
+        "rawSql": "SELECT CASE Status WHEN 0 THEN '0 - Baru' WHEN 1 THEN '1 - Berhasil Dikirim' WHEN 2 THEN '2 - Gagal Invalid Token' WHEN 3 THEN '3 - Gagal Server Error' WHEN 4 THEN '4 - Diterima' WHEN 5 THEN '5 - Dibaca' END AS [Status], COUNT(*) AS [Jumlah] FROM [dbo].[Notifikasi] WHERE $__timeFilter(FDate) GROUP BY Status ORDER BY Status"
+      }],
+      "options": { "reduceOptions": { "calcs": ["sum"] }, "pieType": "donut", "displayLabels": ["percent"] },
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+
+    {
+      "id": 7,
+      "title": "Notifikasi per Jenis",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "datasource": { "type": "mssql", "uid": "sqlserver-bpjs" },
+      "targets": [{
+        "refId": "A",
+        "format": "table",
+        "rawSql": "SELECT r.NmJnsNotif AS [Jenis], COUNT(*) AS [Total], SUM(CASE WHEN n.Status IN (1,4,5) THEN 1 ELSE 0 END) AS [Berhasil], SUM(CASE WHEN n.Status = 5 THEN 1 ELSE 0 END) AS [Dibaca], SUM(CASE WHEN n.Status IN (2,3) THEN 1 ELSE 0 END) AS [Gagal] FROM [dbo].[Notifikasi] n JOIN [dbo].[RefJnsNotif] r ON n.KdJnsNotif = r.KdJnsNotif WHERE $__timeFilter(n.FDate) GROUP BY r.NmJnsNotif ORDER BY [Total] DESC"
+      }],
+      "options": { "xField": "Jenis", "stacking": "none", "tooltip": { "mode": "multi" } },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Gagal" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+          { "matcher": { "id": "byName", "options": "Berhasil" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+          { "matcher": { "id": "byName", "options": "Dibaca" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "purple" } }] }
+        ]
+      }
+    },
+
+    {
+      "id": 8,
+      "title": "Detail Error FCM",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "datasource": { "type": "mssql", "uid": "sqlserver-bpjs" },
+      "targets": [{
+        "refId": "A",
+        "format": "table",
+        "rawSql": "SELECT TOP 10 CASE Status WHEN 2 THEN 'Gagal - Invalid Token' WHEN 3 THEN 'Gagal - Server Error' END AS [Tipe Gagal], Response AS [Pesan Error], COUNT(*) AS [Jumlah], CAST(100.0 * COUNT(*) / SUM(COUNT(*)) OVER() AS DECIMAL(5,1)) AS [Persen %] FROM [dbo].[Notifikasi] WHERE Status IN (2,3) AND Response IS NOT NULL AND $__timeFilter(FDate) GROUP BY Status, Response ORDER BY [Jumlah] DESC"
+      }],
+      "options": { "sortBy": [{ "displayName": "Jumlah", "desc": true }] },
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+
+    {
+      "id": 9,
+      "title": "Funnel: Sent → Delivered → Read per Jenis",
+      "type": "table",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 21 },
+      "datasource": { "type": "mssql", "uid": "sqlserver-bpjs" },
+      "targets": [{
+        "refId": "A",
+        "format": "table",
+        "rawSql": "SELECT r.NmJnsNotif AS [Jenis Notifikasi], COUNT(*) AS [Total Dikirim], SUM(CASE WHEN n.Status IN (1,4,5) THEN 1 ELSE 0 END) AS [Berhasil ke FCM], SUM(CASE WHEN n.Status IN (4,5) THEN 1 ELSE 0 END) AS [Diterima Device], SUM(CASE WHEN n.Status = 5 THEN 1 ELSE 0 END) AS [Dibaca User], CAST(100.0 * SUM(CASE WHEN n.Status IN (1,4,5) THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0) AS DECIMAL(5,1)) AS [Delivery Rate %], CAST(100.0 * SUM(CASE WHEN n.Status = 5 THEN 1 ELSE 0 END) / NULLIF(SUM(CASE WHEN n.Status IN (4,5) THEN 1 ELSE 0 END), 0) AS DECIMAL(5,1)) AS [Open Rate %], SUM(CASE WHEN n.Status IN (2,3) THEN 1 ELSE 0 END) AS [Gagal] FROM [dbo].[Notifikasi] n JOIN [dbo].[RefJnsNotif] r ON n.KdJnsNotif = r.KdJnsNotif WHERE $__timeFilter(n.FDate) GROUP BY r.NmJnsNotif ORDER BY [Total Dikirim] DESC"
+      }],
+      "options": { "sortBy": [{ "displayName": "Total Dikirim", "desc": true }] },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Delivery Rate %" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "custom.displayMode", "value": "color-background" }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 70 }, { "color": "green", "value": 85 }] } }] },
+          { "matcher": { "id": "byName", "options": "Open Rate %" }, "properties": [{ "id": "unit", "value": "percent" }, { "id": "custom.displayMode", "value": "color-background" }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 15 }, { "color": "green", "value": 25 }] } }] },
+          { "matcher": { "id": "byName", "options": "Gagal" }, "properties": [{ "id": "custom.displayMode", "value": "color-text" }, { "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+        ]
+      }
+    }
+
+  ],
+
+  "annotations": { "list": [] },
+  "links": [],
+  "templating": { "list": [] },
+  "timepicker": {}
+}

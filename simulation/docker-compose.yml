@@ -1,0 +1,63 @@
+services:
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: bpjs-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "BpjsSimul@si2026"
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'BpjsSimul@si2026' -Q 'SELECT 1' -No -C"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  sqlserver-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: bpjs-sqlserver-init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    volumes:
+      - ./sqlserver/init.sql:/init.sql:ro
+    command: >
+      /bin/bash -c "/opt/mssql-tools18/bin/sqlcmd -S sqlserver -U sa -P 'BpjsSimul@si2026' -i /init.sql -No -C && echo 'Init complete'"
+    restart: "no"
+
+  generator:
+    build: ./generator
+    container_name: bpjs-generator
+    depends_on:
+      sqlserver-init:
+        condition: service_completed_successfully
+    environment:
+      DB_HOST: sqlserver
+      DB_PASSWORD: "BpjsSimul@si2026"
+      DB_NAME: DBMobile
+    restart: "no"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: bpjs-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: "grafana-mssql-datasource"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+volumes:
+  sqlserver-data:
+  grafana-data:
