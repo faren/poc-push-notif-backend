@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: SQLServer-BPJS
+    type: mssql
+    uid: sqlserver-bpjs
+    url: sqlserver:1433
+    database: DBMobile
+    user: sa
+    secureJsonData:
+      password: "BpjsSimul@si2026"
+    jsonData:
+      encrypt: "disable"
+      authenticationType: SQL Server Authentication
+    isDefault: true
+    editable: false
