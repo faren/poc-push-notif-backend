@@ -1,5 +1,6 @@
 package com.poc.pushnotif.service;
 
+import com.google.firebase.messaging.FcmOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
@@ -43,6 +44,8 @@ public class NotificationServiceImpl implements NotificationService {
                 .putData("messageId", messageId)
                 .putData("category",  category)
                 .putData("timestamp", String.valueOf(request.metadata().timestamp()))
+                // analytics_label groups messages in Firebase Console by category
+                .setFcmOptions(FcmOptions.withAnalyticsLabel(category.toLowerCase()))
                 .build();
 
         try {
